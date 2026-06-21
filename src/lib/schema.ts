@@ -59,3 +59,22 @@ export type MultipleChoice = z.infer<typeof multipleChoiceSchema>
 export type Subjective = z.infer<typeof subjectiveSchema>
 export type KeySentence = z.infer<typeof keySentenceSchema>
 export type Worksheet = z.infer<typeof worksheetSchema>
+
+// BYOT (Bring Your Own Text): the model returns everything EXCEPT the English
+// passage, which the teacher supplied and we inject client-side.
+export const byotOutputSchema = z.object({
+  index: nonEmpty,
+  title: nonEmpty,
+  story_ko: z.array(nonEmpty).min(1),
+  multiple_choice: z.array(multipleChoiceSchema).length(5),
+  subjective: z.array(subjectiveSchema).length(5),
+  key_sentences: z.array(keySentenceSchema).min(1),
+  vocabulary: z.array(vocabularyItemSchema).min(6).max(8),
+})
+
+export type ByotOutput = z.infer<typeof byotOutputSchema>
+
+/** Combine teacher paragraphs with the model output into a full Worksheet. */
+export function assembleWorksheet(story: string[], out: ByotOutput): Worksheet {
+  return { ...out, story }
+}

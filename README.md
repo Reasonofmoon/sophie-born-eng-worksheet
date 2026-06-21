@@ -53,6 +53,13 @@ npm run build      # tsc -b && vite build → dist/
 - **고아/과부 줄 방지**: 지문 단락 `orphans: 3; widows: 3`. 어휘 박스는 페이지를 가로질러도 항목 단위는 보존(`.vocab-box` auto / `.vocab-item` avoid)
 - `@page { size: A4; margin: 12mm }`
 
+## 스마트 편집 / 내보내기 (P3)
+
+- **내 본문 사용 (BYOT)**: 영어 지문을 붙여넣으면 그 지문 그대로 객관식·서술형·어휘·해석을 생성. 본문을 재생성·재출력하지 않아 **토큰 절약** — [llm.ts `generateFromPassage`](worksheet-gen/src/lib/llm.ts), 클라이언트 단락 분할 + `byotOutputSchema` 병합 후 전체 스키마 재검증
+- **템플릿 / 스마트 편집**: 템플릿(기본·시험지·콤팩트·교과서) + 폰트·글자 크기·문항 간격 슬라이더. 레이아웃은 CSS 변수로 클라이언트 처리 → **LLM 토큰 0** — [templates.ts](worksheet-gen/src/lib/templates.ts)
+- **HWP용 HTML 복사**: 현재 인쇄 범위(학습지/답안지/전체)를 인라인 스타일 HTML로 클립보드에 복사 → HWP/HWPX에 Ctrl+V. CSS 클래스 대신 인라인 스타일이라 한글 워드프로세서에서 서식 유지 — [hwp.ts](worksheet-gen/src/lib/hwp.ts)
+- **답 기입란 박스**: 서술형(Q6-10)·문장 해석은 얇은 밑줄 대신 학생이 직접 쓰는 **빈 테두리 박스**. 높이는 `답란 높이` 슬라이더(`--answer-h`)로 조절, 화면·인쇄·HWP 모두 반영. 문항은 hanging-indent로 번호 아래 stem·선택지가 정렬
+
 ## 후속 (P2 — 미구현)
 
 - 프라이버시 정책 페이지, 배포 체크리스트(app-factory `studio inspect` 잔여 warn 해소)

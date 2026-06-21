@@ -69,6 +69,27 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .primary { background: var(--accent); color: #fff; }
 .secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
 .error { color: #fca5a5; font-size: 13px; }
+.notice { color: #86efac; font-size: 13px; }
+
+/* segmented toggle (generate vs BYOT) */
+.segmented { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+.seg-btn { flex: 1; background: transparent; color: var(--muted); font-size: 12px; padding: 7px 4px; border-radius: 6px; }
+.seg-btn.active { background: var(--accent); color: #fff; }
+
+.passage-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 120px;
+}
+.field-nudge { font-size: 11px; color: var(--muted); line-height: 1.4; }
+.val { color: var(--text); font-weight: 600; font-size: 12px; }
+input[type='range'] { width: 100%; accent-color: var(--accent); }
 
 /* ---------- Canvas ---------- */
 .canvas { padding: 28px; overflow-y: auto; max-height: 100vh; display: flex; justify-content: center; }
@@ -83,8 +104,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   padding: 16mm;
   border-radius: 4px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  font-size: 12.5px;
-  line-height: 1.6;
+  /* Layout-template driven (set as CSS vars on .doc). */
+  font-family: var(--ws-font, system-ui, 'Segoe UI', sans-serif);
+  font-size: var(--ws-font-size, 12.5px);
+  line-height: var(--ws-line, 1.6);
   display: flex;
   flex-direction: column;
 }
@@ -117,21 +140,34 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .illustration img, .illustration svg { width: 200px; height: 150px; object-fit: contain; border-radius: 8px; }
 
 /* ---------- Questions ---------- */
-.questions { display: flex; flex-direction: column; gap: 8px; }
-.q-text { font-weight: 600; }
+.questions { display: flex; flex-direction: column; gap: var(--q-gap, 16px); }
+/* Hanging indent: the number sits in the left gutter, every following line
+   (wrapped stem, options, answer, explanation) aligns under the stem text. */
+.q { padding-left: 1.6em; }
+.q-text { font-weight: 600; text-indent: -1.6em; }
 .q-ko { color: #6b7280; font-weight: 400; }
-.opts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 2px; }
+.opts { display: flex; flex-wrap: wrap; column-gap: 16px; row-gap: 5px; margin-top: 6px; }
 .opt.correct { background: #dcfce7; border-radius: 4px; padding: 0 4px; font-weight: 700; }
-.answer { color: #b91c1c; margin-top: 2px; }
-.explanation { color: #374151; font-size: 11.5px; margin-top: 2px; }
-.answer-line { border-bottom: 1px solid #cbd5e1; height: 22px; margin-top: 6px; }
+.answer { color: #b91c1c; margin-top: 5px; }
+.explanation { color: #374151; font-size: 11.5px; margin-top: 4px; }
+
+/* Empty boxes students fill in by hand. Sized via the layout template's
+   --answer-h so teachers can widen them with the "답란 높이" control. */
+.write-box {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #fff;
+  box-sizing: border-box;
+}
+.write-box.answer-area { min-height: var(--answer-h, 56px); margin-top: 6px; }
+.write-box.trans-area { min-height: calc(var(--answer-h, 56px) * 0.62); margin-top: 4px; }
 .instruction { font-weight: 700; color: #1f2937; margin-bottom: 6px; }
 
 /* ---------- Translation practice (page 2) ---------- */
 .trans-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
 .trans-item { margin-bottom: 8px; }
 .trans-en { font-weight: 500; }
-.trans-line { border-bottom: 1px solid #cbd5e1; height: 20px; margin-top: 2px; }
 .vocab-box { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; height: fit-content; }
 .vocab-item { padding: 4px 0; border-bottom: 1px dashed #e5e7eb; }
 .vocab-word { display: flex; gap: 6px; font-weight: 700; }

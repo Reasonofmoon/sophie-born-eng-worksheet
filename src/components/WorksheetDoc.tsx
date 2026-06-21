@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { applyEdit, SENTENCE_MIN, VOCAB_MAX, VOCAB_MIN, type EditableField, type StructureOp } from '../lib/blocks'
 import type { Worksheet } from '../lib/schema'
 import { EditableText } from './EditableText'
@@ -22,9 +23,10 @@ interface Props {
   onMeta: (patch: Partial<DocMeta>) => void
   onImage: (dataUrl: string) => void
   onStructure: (op: StructureOp) => void
+  styleVars?: CSSProperties
 }
 
-export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, onWorksheet, onMeta, onImage, onStructure }: Props) {
+export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, onWorksheet, onMeta, onImage, onStructure, styleVars }: Props) {
   const titleSuffix = ` (${meta.levelCode})`
 
   // Bind an EditableField object to a worksheet mutation. Each editable block
@@ -71,7 +73,7 @@ export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, onWor
   }
 
   return (
-    <div className="doc">
+    <div className="doc" style={styleVars}>
       {/* ---- PAGE 1 — student worksheet ---- */}
       <article className="page" data-page="student">
         <Header />
@@ -97,7 +99,7 @@ export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, onWor
           {ws.subjective.map((sub, i) => (
             <div className="q print-block" key={`sub-${i}`}>
               <EditableText className="q-text" value={`${i + 6}. ${sub.question}`} onChange={edit({ kind: 'subStem', i })} />
-              <div className="answer-line" />
+              <div className="write-box answer-area" aria-hidden="true" />
             </div>
           ))}
         </section>
@@ -126,7 +128,7 @@ export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, onWor
                   ×
                 </button>
                 <EditableText className="trans-en" value={`${i + 1}. ${ks.english}`} onChange={edit({ kind: 'sentenceEn', i })} />
-                <div className="trans-line" />
+                <div className="write-box trans-area" aria-hidden="true" />
               </div>
             ))}
             <button
