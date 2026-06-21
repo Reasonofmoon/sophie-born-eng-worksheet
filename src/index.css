@@ -1,0 +1,267 @@
+:root {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --border: #334155;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #6366f1;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); }
+
+.layout { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+.sidebar h1 { margin: 0; font-size: 20px; }
+.tagline { margin: 0 0 4px; color: var(--muted); font-size: 12px; }
+.section {
+  margin-top: 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.sidebar label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.sidebar input, .sidebar select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px;
+  font-size: 14px;
+}
+.hint { margin: -2px 0 0; font-size: 11px; color: var(--muted); line-height: 1.4; }
+.hint a { color: #a5b4fc; }
+
+.presets { display: flex; flex-direction: column; gap: 6px; }
+.preset {
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+.preset.active { border-color: var(--accent); background: rgba(99, 102, 241, 0.12); }
+.preset strong { font-size: 13px; }
+.preset span { font-size: 11px; color: var(--muted); }
+
+button { border: none; border-radius: 6px; padding: 10px; font-size: 14px; cursor: pointer; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.primary { background: var(--accent); color: #fff; }
+.secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+.error { color: #fca5a5; font-size: 13px; }
+
+/* ---------- Canvas ---------- */
+.canvas { padding: 28px; overflow-y: auto; max-height: 100vh; display: flex; justify-content: center; }
+.empty { margin: auto; color: var(--muted); }
+.doc { display: flex; flex-direction: column; gap: 22px; }
+
+.page {
+  background: #fff;
+  color: #111;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 16mm;
+  border-radius: 4px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  font-size: 12.5px;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Worksheet header ---------- */
+.ws-header { border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 12px; }
+.ws-meta { display: flex; justify-content: space-between; font-size: 11px; color: #555; }
+.ws-meta .teacher { font-style: italic; font-weight: 600; color: #6b7280; }
+.ws-title-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.ws-index { background: #111; color: #fff; border-radius: 6px; padding: 2px 10px; font-weight: 700; }
+.ws-title { font-size: 19px; margin: 0; }
+.ws-level { color: #6b7280; font-size: 14px; }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+.badge.genre { background: #eef2ff; color: #4338ca; }
+.badge.trans { background: #ecfeff; color: #0e7490; }
+.badge.answer { background: #fee2e2; color: #b91c1c; }
+.badge.answer2 { background: #ccfbf1; color: #0d9488; }
+
+/* ---------- Story + illustration ---------- */
+.story-row { display: grid; grid-template-columns: 1fr 200px; gap: 14px; margin-bottom: 10px; }
+.story-row.no-illustration { grid-template-columns: 1fr; }
+.story p { margin: 0 0 8px; }
+.illustration {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  align-self: start;
+}
+.illustration img, .illustration svg { width: 200px; height: 150px; object-fit: contain; border-radius: 8px; }
+
+/* ---------- Questions ---------- */
+.questions { display: flex; flex-direction: column; gap: 8px; }
+.q-text { font-weight: 600; }
+.q-ko { color: #6b7280; font-weight: 400; }
+.opts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 2px; }
+.opt.correct { background: #dcfce7; border-radius: 4px; padding: 0 4px; font-weight: 700; }
+.answer { color: #b91c1c; margin-top: 2px; }
+.explanation { color: #374151; font-size: 11.5px; margin-top: 2px; }
+.answer-line { border-bottom: 1px solid #cbd5e1; height: 22px; margin-top: 6px; }
+.instruction { font-weight: 700; color: #1f2937; margin-bottom: 6px; }
+
+/* ---------- Translation practice (page 2) ---------- */
+.trans-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+.trans-item { margin-bottom: 8px; }
+.trans-en { font-weight: 500; }
+.trans-line { border-bottom: 1px solid #cbd5e1; height: 20px; margin-top: 2px; }
+.vocab-box { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; height: fit-content; }
+.vocab-item { padding: 4px 0; border-bottom: 1px dashed #e5e7eb; }
+.vocab-word { display: flex; gap: 6px; font-weight: 700; }
+.vocab-word .pos { color: #6b7280; font-weight: 400; }
+.vocab-meaning { color: #374151; }
+
+/* ---------- Answer key sentence list (page 4) ---------- */
+.trans-key-item { margin-bottom: 6px; }
+.trans-key-item .trans-en { font-weight: 500; }
+.trans-key-item .trans-ko { color: #0d9488; }
+
+/* ---------- Footer ---------- */
+.ws-footer { margin-top: auto; padding-top: 10px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 11px; }
+
+/* contentEditable focus affordance */
+[contenteditable]:focus { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+/* ---------- Nudge controls (screen only) ---------- */
+.count-nudge {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+.count-nudge.ok { background: #dcfce7; color: #15803d; }
+.count-nudge.edge { background: #fef3c7; color: #b45309; }
+
+.trans-item, .vocab-item { position: relative; }
+.item-del {
+  position: absolute;
+  left: -22px;
+  top: 2px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 1;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.trans-item:hover .item-del, .vocab-item:hover .item-del, .item-del:focus-visible { opacity: 1; }
+.item-del:disabled { background: #f1f5f9; color: #cbd5e1; opacity: 0; }
+.trans-item:hover .item-del:disabled, .vocab-item:hover .item-del:disabled { opacity: 0.5; }
+
+.add-nudge {
+  margin-top: 8px;
+  width: 100%;
+  background: transparent;
+  border: 1px dashed #cbd5e1;
+  color: #6366f1;
+  font-size: 12px;
+  padding: 6px;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.add-nudge:hover:not(:disabled) { background: #eef2ff; border-color: #6366f1; }
+.add-nudge:disabled { color: #cbd5e1; border-style: solid; }
+
+/* ---------- Privacy nudge ---------- */
+.privacy-nudge { display: flex; flex-direction: column; gap: 4px; margin: -2px 0 2px; }
+.privacy-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; font-size: 11px; color: var(--muted); }
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  color: #a5b4fc;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.link-btn.danger { color: #fca5a5; align-self: flex-start; }
+.privacy-detail { margin: 2px 0 0; padding-left: 16px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+.privacy-detail a { color: #a5b4fc; }
+.privacy-detail b { color: var(--text); }
+
+/* ---------- Loading overlay ---------- */
+.overlay {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 50;
+}
+.spinner { width: 42px; height: 42px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Print ---------- */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  .layout { display: block; }
+  .canvas { padding: 0; max-height: none; overflow: visible; display: block; }
+  .doc { gap: 0; }
+
+  /* Each logical page starts on a fresh sheet, but content flows naturally onto
+     additional sheets when it overflows — blocks decide where the break lands,
+     not a fixed A4 box. */
+  .page {
+    box-shadow: none;
+    border-radius: 0;
+    width: auto;
+    min-height: auto;
+    height: auto;
+    padding: 0;
+    display: block;
+    break-before: page;
+  }
+  /* Avoid a leading blank sheet for the first visible page in each mode. */
+  .doc .page:first-child,
+  .canvas.print-answers .page[data-page='answers']:first-of-type {
+    break-before: avoid;
+  }
+
+  .canvas.print-student [data-page='answers'] { display: none; }
+  .canvas.print-answers [data-page='student'] { display: none; }
+
+  /* Block-level break protection: an item is never split across a page edge. */
+  .print-block { break-inside: avoid; }
+  .ws-header { break-after: avoid; }
+  .instruction { break-after: avoid; }
+  .story p { orphans: 3; widows: 3; }
+  .vocab-box { break-inside: auto; } /* allow the box itself to span pages… */
+  .vocab-item { break-inside: avoid; } /* …but keep each entry whole */
+
+  /* Footer should sit in normal flow when printing, not pinned to viewport. */
+  .ws-footer { margin-top: 16px; }
+}
