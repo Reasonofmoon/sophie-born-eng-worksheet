@@ -105,6 +105,7 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 
 /* ---------- Paged preview (paged.js) ---------- */
 .paged-source { position: absolute; left: -99999px; top: 0; width: 210mm; }
+.paged-count-host { position: absolute; left: -99999px; top: 0; width: 210mm; }
 .paged-host { display: block; }
 .paged-host .pagedjs_pages { display: flex; flex-direction: column; align-items: center; gap: 22px; }
 .paged-host .pagedjs_page {

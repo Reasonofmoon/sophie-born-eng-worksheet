@@ -92,9 +92,10 @@ export function App() {
   // onto page 5, 6, … instead of one box growing past the sheet.
   const [previewPaged, setPreviewPaged] = useState(false)
   const [paging, setPaging] = useState(false)
-  const [pageCount, setPageCount] = useState(0)
+  const [estPages, setEstPages] = useState(0) // auto-detected page count
   const sourceRef = useRef<HTMLDivElement>(null)
   const pagedRef = useRef<HTMLDivElement>(null)
+  const countHostRef = useRef<HTMLDivElement>(null)
 
   const providerInfo = PROVIDERS[provider]
   const styles = STYLE_OPTIONS[genre]
@@ -115,7 +116,7 @@ export function App() {
         const { Previewer } = await import('pagedjs')
         if (cancelled) return
         const result = await new Previewer().preview(html, [], target)
-        if (!cancelled) setPageCount(result?.total ?? 0)
+        if (!cancelled) setEstPages(result?.total ?? 0)
       } catch {
         if (!cancelled) setError('페이지 미리보기 생성에 실패했습니다.')
       } finally {
@@ -126,7 +127,38 @@ export function App() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewPaged, ws, meta, settings, langMode, image, noIllustration])
+  }, [previewPaged, ws, meta, settings, langMode, image, noIllustration, printMode])
+
+  // Auto-detect the real page count live while editing (background paged.js
+  // measurement off-screen), so the count isn't perceived as capped at 4.
+  useEffect(() => {
+    if (!ws || previewPaged) return
+    const source = sourceRef.current
+    const host = countHostRef.current
+    if (!source || !host) return
+    let cancelled = false
+    const timer = setTimeout(() => {
+      const html = source.innerHTML.replace(/contenteditable="true"/g, '')
+      host.innerHTML = ''
+      void (async () => {
+        try {
+          const { Previewer } = await import('pagedjs')
+          if (cancelled) return
+          const result = await new Previewer().preview(html, [], host)
+          if (!cancelled) setEstPages(result?.total ?? 0)
+        } catch {
+          /* measurement is best-effort */
+        } finally {
+          if (host) host.innerHTML = ''
+        }
+      })()
+    }, 600)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ws, meta, settings, langMode, image, noIllustration, printMode, previewPaged])
 
   useEffect(() => {
     setApiKey(localStorage.getItem(keyStorageKey(provider)) ?? '')
@@ -492,13 +524,16 @@ export function App() {
         <label>
           범위
           <select value={printMode} onChange={(e) => setPrintMode(e.target.value as PrintMode)}>
-            <option value="all">학습지 + 답안지 (4페이지)</option>
-            <option value="student">학습지만 (2페이지)</option>
-            <option value="answers">답안지만 (2페이지)</option>
+            <option value="all">학습지 + 답안지</option>
+            <option value="student">학습지만</option>
+            <option value="answers">답안지만</option>
           </select>
         </label>
+        {ws && (
+          <p className="field-nudge">📄 자동 감지: 전체 약 <b>{estPages || '…'}</b>페이지 — 내용이 늘면 페이지도 자동으로 늘어납니다(고정 4페이지 아님).</p>
+        )}
         <button className="secondary" disabled={!ws} onClick={() => setPreviewPaged((v) => !v)}>
-          {previewPaged ? '✎ 편집 모드로' : '⊞ 페이지 미리보기'}{previewPaged && pageCount ? ` (${pageCount}p)` : ''}
+          {previewPaged ? '✎ 편집 모드로' : '⊞ 페이지 미리보기'}{estPages ? ` (${estPages}p)` : ''}
         </button>
         <p className="field-nudge">페이지 미리보기는 실제 A4 분할을 보여줘요 — 내용이 넘치면 다음 장으로 이어집니다.</p>
         <button className="secondary" disabled={!ws} onClick={() => window.print()}>인쇄 / PDF 저장</button>
@@ -519,14 +554,18 @@ export function App() {
         {ws && !previewPaged && docEl}
         {ws && previewPaged && (
           <>
-            {/* Hidden source paged.js reads from, then renders A4 sheets into paged-host. */}
-            <div className="paged-source no-print" ref={sourceRef} aria-hidden="true">
-              {docEl}
-            </div>
             {paging && <div className="empty no-print">페이지 분할 중…</div>}
             <div className="paged-host" ref={pagedRef} />
           </>
         )}
+        {/* Always-present hidden source: feeds paged.js for both the preview and
+            the live page-count auto-detection. */}
+        {ws && (
+          <div className="paged-source no-print" ref={sourceRef} aria-hidden="true">
+            {docEl}
+          </div>
+        )}
+        {ws && <div className="paged-count-host no-print" ref={countHostRef} aria-hidden="true" />}
       </main>
 
       {loading && (
