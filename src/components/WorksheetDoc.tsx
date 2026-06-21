@@ -6,12 +6,18 @@ import { Illustration } from './Illustration'
 
 const CIRCLE = ['①', '②', '③', '④', '⑤'] as const
 
+export type LangMode = 'both' | 'en'
+
 export interface DocMeta {
   genreLabel: string
   levelCode: string
   footer: string
   name: string
   date: string
+  academyName: string
+  logoDataUrl: string | null
+  /** "CEFR A2 · AR 3.0–4.5 · Lexile 400L–700L". */
+  readability: string
 }
 
 interface Props {
@@ -19,6 +25,7 @@ interface Props {
   meta: DocMeta
   image: string | null
   noIllustration: boolean
+  langMode: LangMode
   onWorksheet: (mutator: (draft: Worksheet) => void) => void
   onMeta: (patch: Partial<DocMeta>) => void
   onImage: (dataUrl: string) => void
@@ -26,7 +33,7 @@ interface Props {
   styleVars?: CSSProperties
 }
 
-export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, onWorksheet, onMeta, onImage, onStructure, styleVars }: Props) {
+export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, langMode, onWorksheet, onMeta, onImage, onStructure, styleVars }: Props) {
   const titleSuffix = ` (${meta.levelCode})`
 
   // Bind an EditableField object to a worksheet mutation. Each editable block
@@ -40,9 +47,24 @@ export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, onWor
   const canRemoveSentence = sentenceCount > SENTENCE_MIN
   const vocabAtEdge = !canAddVocab || !canRemoveVocab
 
-  function Header({ badge, teacher }: { badge?: { text: string; tone?: 'answer' | 'answer2' | 'trans' }; teacher?: string }) {
+  function Header({ badge, teacher, first }: { badge?: { text: string; tone?: 'answer' | 'answer2' | 'trans' }; teacher?: string; first?: boolean }) {
+    // After the first page, show only a slim section label — the full branding /
+    // name-date / title header appears once at the very top.
+    if (!first) {
+      return (
+        <header className="ws-header slim">
+          {teacher && <span className="teacher">{teacher}</span>}
+          {badge && <span className={`badge ${badge.tone ?? 'answer'}`}>{badge.text}</span>}
+        </header>
+      )
+    }
     return (
       <header className="ws-header">
+        <div className="ws-brand">
+          {meta.logoDataUrl && <img className="ws-logo" src={meta.logoDataUrl} alt="academy logo" />}
+          <EditableText as="span" className="ws-academy" value={meta.academyName} onChange={(v) => onMeta({ academyName: v })} />
+          {meta.readability && <span className="ws-readability">{meta.readability}</span>}
+        </div>
         <div className="ws-meta">
           {teacher ? (
             <span className="teacher">{teacher}</span>
@@ -73,10 +95,10 @@ export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, onWor
   }
 
   return (
-    <div className="doc" style={styleVars}>
+    <div className={`doc lang-${langMode}`} style={styleVars}>
       {/* ---- PAGE 1 — student worksheet ---- */}
       <article className="page" data-page="student">
-        <Header />
+        <Header first />
         <section className={`story-row ${noIllustration ? 'no-illustration' : ''}`}>
           <div className="story">
             {ws.story.map((p, i) => (
@@ -84,6 +106,42 @@ export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, onWor
             ))}
           </div>
           {!noIllustration && <Illustration src={image} onUpload={onImage} />}
+        </section>
+        <section className="vocab-panel">
+          <div className="instruction">
+            ★ 핵심 단어 정리
+            <span className={`count-nudge ${vocabAtEdge ? 'edge' : 'ok'} no-print`}>{vocabCount} / {VOCAB_MIN}–{VOCAB_MAX}</span>
+          </div>
+          <div className="vocab-grid">
+            {ws.vocabulary.map((vEntry, i) => (
+              <div className="vocab-item print-block" key={i}>
+                <button
+                  type="button"
+                  className="item-del no-print"
+                  disabled={!canRemoveVocab}
+                  title={canRemoveVocab ? '이 단어 삭제' : `핵심 단어는 최소 ${VOCAB_MIN}개를 권장해요`}
+                  onClick={() => onStructure({ kind: 'removeVocab', i })}
+                  aria-label="단어 삭제"
+                >
+                  ×
+                </button>
+                <div className="vocab-word">
+                  <EditableText as="span" value={vEntry.word} onChange={edit({ kind: 'vocabWord', i })} />
+                  <EditableText as="span" className="pos" value={`(${vEntry.pos})`} onChange={edit({ kind: 'vocabPos', i })} />
+                </div>
+                <EditableText className="vocab-meaning" value={vEntry.meaning} onChange={edit({ kind: 'vocabMeaning', i })} />
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="add-nudge no-print"
+            disabled={!canAddVocab}
+            title={canAddVocab ? '단어 추가' : `핵심 단어는 ${VOCAB_MAX}개까지 권장해요`}
+            onClick={() => onStructure({ kind: 'addVocab', afterIndex: vocabCount - 1 })}
+          >
+            + 단어 추가 {!canAddVocab && '(최대)'}
+          </button>
         </section>
         <section className="questions">
           {ws.multiple_choice.map((mc, i) => (
@@ -109,70 +167,34 @@ export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, onWor
       {/* ---- PAGE 2 — translation practice ---- */}
       <article className="page" data-page="student">
         <Header badge={{ text: '구문 해석 연습', tone: 'trans' }} />
-        <section className="trans-row">
-          <div className="trans-list">
-            <div className="instruction">
-              ★ 다음 중요 문장을 읽고, 빈칸에 알맞은 한글 해석을 써 봅시다.
-              <span className="count-nudge ok no-print">{sentenceCount}문장</span>
-            </div>
-            {ws.key_sentences.map((ks, i) => (
-              <div className="trans-item print-block" key={i}>
-                <button
-                  type="button"
-                  className="item-del no-print"
-                  disabled={!canRemoveSentence}
-                  title={canRemoveSentence ? '이 문장 삭제' : '문장은 최소 1개가 필요해요'}
-                  onClick={() => onStructure({ kind: 'removeSentence', i })}
-                  aria-label="문장 삭제"
-                >
-                  ×
-                </button>
-                <EditableText className="trans-en" value={`${i + 1}. ${ks.english}`} onChange={edit({ kind: 'sentenceEn', i })} />
-                <div className="write-box trans-area" aria-hidden="true" />
-              </div>
-            ))}
-            <button
-              type="button"
-              className="add-nudge no-print"
-              onClick={() => onStructure({ kind: 'addSentence', afterIndex: sentenceCount - 1 })}
-            >
-              + 문장 추가
-            </button>
+        <section className="trans-single">
+          <div className="instruction">
+            ★ 다음 중요 문장을 읽고, 빈칸에 알맞은 한글 해석을 써 봅시다.
+            <span className="count-nudge ok no-print">{sentenceCount}문장</span>
           </div>
-          <aside className="vocab-box">
-            <div className="instruction">
-              ★ 핵심 단어 정리
-              <span className={`count-nudge ${vocabAtEdge ? 'edge' : 'ok'} no-print`}>{vocabCount} / {VOCAB_MIN}–{VOCAB_MAX}</span>
+          {ws.key_sentences.map((ks, i) => (
+            <div className="trans-item print-block" key={i}>
+              <button
+                type="button"
+                className="item-del no-print"
+                disabled={!canRemoveSentence}
+                title={canRemoveSentence ? '이 문장 삭제' : '문장은 최소 1개가 필요해요'}
+                onClick={() => onStructure({ kind: 'removeSentence', i })}
+                aria-label="문장 삭제"
+              >
+                ×
+              </button>
+              <EditableText className="trans-en" value={`${i + 1}. ${ks.english}`} onChange={edit({ kind: 'sentenceEn', i })} />
+              <div className="write-box trans-area" aria-hidden="true" />
             </div>
-            {ws.vocabulary.map((vEntry, i) => (
-              <div className="vocab-item print-block" key={i}>
-                <button
-                  type="button"
-                  className="item-del no-print"
-                  disabled={!canRemoveVocab}
-                  title={canRemoveVocab ? '이 단어 삭제' : `핵심 단어는 최소 ${VOCAB_MIN}개를 권장해요`}
-                  onClick={() => onStructure({ kind: 'removeVocab', i })}
-                  aria-label="단어 삭제"
-                >
-                  ×
-                </button>
-                <div className="vocab-word">
-                  <EditableText as="span" value={vEntry.word} onChange={edit({ kind: 'vocabWord', i })} />
-                  <EditableText as="span" className="pos" value={`(${vEntry.pos})`} onChange={edit({ kind: 'vocabPos', i })} />
-                </div>
-                <EditableText className="vocab-meaning" value={vEntry.meaning} onChange={edit({ kind: 'vocabMeaning', i })} />
-              </div>
-            ))}
-            <button
-              type="button"
-              className="add-nudge no-print"
-              disabled={!canAddVocab}
-              title={canAddVocab ? '단어 추가' : `핵심 단어는 ${VOCAB_MAX}개까지 권장해요`}
-              onClick={() => onStructure({ kind: 'addVocab', afterIndex: vocabCount - 1 })}
-            >
-              + 단어 추가 {!canAddVocab && '(최대)'}
-            </button>
-          </aside>
+          ))}
+          <button
+            type="button"
+            className="add-nudge no-print"
+            onClick={() => onStructure({ kind: 'addSentence', afterIndex: sentenceCount - 1 })}
+          >
+            + 문장 추가
+          </button>
         </section>
         <Footer />
       </article>
@@ -180,7 +202,7 @@ export function WorksheetDoc({ worksheet: ws, meta, image, noIllustration, onWor
       {/* ---- PAGE 3 — answer key 1 (translation + MC answers) ---- */}
       <article className="page answer-key" data-page="answers">
         <Header teacher="Teacher's Copy (정답 ①)" badge={{ text: '정답 및 해설 ①', tone: 'answer' }} />
-        <section className={`story-row ${noIllustration ? 'no-illustration' : ''}`}>
+        <section className={`story-row ko-only ${noIllustration ? 'no-illustration' : ''}`}>
           <div className="story">
             {ws.story_ko.map((p, i) => (
               <EditableText as="p" className="print-block" key={i} value={p} onChange={edit({ kind: 'storyPara', i, lang: 'ko' })} />

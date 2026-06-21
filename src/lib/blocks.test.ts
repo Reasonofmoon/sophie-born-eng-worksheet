@@ -104,15 +104,15 @@ describe('applyEdit', () => {
 })
 
 describe('applyStructure (add/remove blocks)', () => {
-  it('adds a vocab item after the given index, up to the max', () => {
+  it('adds vocab items up to the max, then refuses', () => {
     const d = sample()
-    const start = d.vocabulary.length // last-seat ships 8 (== max)
+    expect(canApplyStructure(d, { kind: 'addVocab', afterIndex: 0 })).toBe(true) // ships 8 < 20
+    while (d.vocabulary.length < VOCAB_MAX) {
+      applyStructure(d, { kind: 'addVocab', afterIndex: d.vocabulary.length - 1 })
+    }
+    expect(d.vocabulary.length).toBe(VOCAB_MAX)
     expect(canApplyStructure(d, { kind: 'addVocab', afterIndex: 0 })).toBe(false)
-    // Trim to min, then we can add back toward the max.
-    d.vocabulary = d.vocabulary.slice(0, VOCAB_MIN)
-    expect(applyStructure(d, { kind: 'addVocab', afterIndex: 0 })).toBe(true)
-    expect(d.vocabulary.length).toBe(VOCAB_MIN + 1)
-    expect(start).toBe(VOCAB_MAX)
+    expect(applyStructure(d, { kind: 'addVocab', afterIndex: 0 })).toBe(false)
   })
 
   it('refuses to remove a vocab item below the minimum', () => {

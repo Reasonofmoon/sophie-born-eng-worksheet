@@ -27,6 +27,12 @@ export interface LevelConfig {
    *  - 'all'  → every sentence of the story, in order, exactly once
    */
   keySentences: 'ten' | 'all'
+  /** CEFR band (approx. mapping). */
+  cefr: string
+  /** Accelerated Reader (ATOS) book-level band (approx. mapping). */
+  ar: string
+  /** Lexile band (approx. mapping). */
+  lexile: string
 }
 
 export const LEVELS: Record<LevelValue, LevelConfig> = {
@@ -38,6 +44,9 @@ export const LEVELS: Record<LevelValue, LevelConfig> = {
     paragraphs: 3,
     words: [80, 95],
     keySentences: 'ten',
+    cefr: 'Pre-A1',
+    ar: '1.0–2.0',
+    lexile: 'BR–300L',
   },
   elementary_3_4: {
     value: 'elementary_3_4',
@@ -47,6 +56,9 @@ export const LEVELS: Record<LevelValue, LevelConfig> = {
     paragraphs: 3,
     words: [100, 115],
     keySentences: 'ten',
+    cefr: 'A1',
+    ar: '2.0–3.0',
+    lexile: '200L–500L',
   },
   elementary_5_6: {
     value: 'elementary_5_6',
@@ -56,6 +68,9 @@ export const LEVELS: Record<LevelValue, LevelConfig> = {
     paragraphs: 4,
     words: [120, 140],
     keySentences: 'all',
+    cefr: 'A2',
+    ar: '3.0–4.5',
+    lexile: '400L–700L',
   },
   middle_1_2: {
     value: 'middle_1_2',
@@ -65,6 +80,9 @@ export const LEVELS: Record<LevelValue, LevelConfig> = {
     paragraphs: 4,
     words: [140, 155],
     keySentences: 'all',
+    cefr: 'A2–B1',
+    ar: '4.0–5.5',
+    lexile: '600L–800L',
   },
   middle_2_3: {
     value: 'middle_2_3',
@@ -74,7 +92,20 @@ export const LEVELS: Record<LevelValue, LevelConfig> = {
     paragraphs: 4,
     words: [160, 180],
     keySentences: 'all',
+    cefr: 'B1',
+    ar: '5.0–6.5',
+    lexile: '700L–900L',
   },
+}
+
+/** "CEFR A2 · AR 3.0–4.5 · Lexile 400L–700L" — approximate cross-mapping. */
+export function readabilityLabel(cfg: LevelConfig): string {
+  return `CEFR ${cfg.cefr} · AR ${cfg.ar} · Lexile ${cfg.lexile}`
+}
+
+/** Look up a level by its short code (e.g. "L3"). Used by presets. */
+export function levelByCode(code: string): LevelConfig | undefined {
+  return Object.values(LEVELS).find((l) => l.code === code)
 }
 
 export const LEVEL_VALUES = Object.keys(LEVELS) as LevelValue[]

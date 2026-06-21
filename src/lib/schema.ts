@@ -41,7 +41,7 @@ export const worksheetSchema = z
     multiple_choice: z.array(multipleChoiceSchema).length(5),
     subjective: z.array(subjectiveSchema).length(5),
     key_sentences: z.array(keySentenceSchema).min(1),
-    vocabulary: z.array(vocabularyItemSchema).min(6).max(8),
+    vocabulary: z.array(vocabularyItemSchema).min(6).max(20),
   })
   .superRefine((data, ctx) => {
     // The Korean translation must align paragraph-for-paragraph with the story.
@@ -69,7 +69,7 @@ export const byotOutputSchema = z.object({
   multiple_choice: z.array(multipleChoiceSchema).length(5),
   subjective: z.array(subjectiveSchema).length(5),
   key_sentences: z.array(keySentenceSchema).min(1),
-  vocabulary: z.array(vocabularyItemSchema).min(6).max(8),
+  vocabulary: z.array(vocabularyItemSchema).min(6).max(20),
 })
 
 export type ByotOutput = z.infer<typeof byotOutputSchema>

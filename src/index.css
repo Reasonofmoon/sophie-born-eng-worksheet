@@ -96,6 +96,32 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 .empty { margin: auto; color: var(--muted); }
 .doc { display: flex; flex-direction: column; gap: 22px; }
 
+/* Fragmentation rules in base CSS so both print and the paged.js on-screen
+   preview honor them (they're inert in normal screen flow). */
+.page { break-before: page; }
+.doc > .page:first-child { break-before: avoid; }
+.print-block { break-inside: avoid; }
+.story p { orphans: 3; widows: 3; }
+
+/* ---------- Paged preview (paged.js) ---------- */
+.paged-source { position: absolute; left: -99999px; top: 0; width: 210mm; }
+.paged-host { display: block; }
+.paged-host .pagedjs_pages { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.paged-host .pagedjs_page {
+  background: #fff;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+/* Neutralize the screen-only .page chrome when nested inside a paged sheet. */
+.pagedjs_page .page {
+  box-shadow: none;
+  border-radius: 0;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+}
+/* Editing affordances don't belong in the paginated read-only preview. */
+.pagedjs_page .no-print { display: none; }
+
 .page {
   background: #fff;
   color: #111;
@@ -112,8 +138,32 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
   flex-direction: column;
 }
 
+/* ---------- Branding bar (logo + academy name + readability) ---------- */
+.ws-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ws-logo { height: 28px; width: auto; max-width: 120px; object-fit: contain; }
+.ws-academy { font-weight: 700; font-size: 14px; color: #111; }
+.ws-academy:empty::before { content: '학원명'; color: #cbd5e1; }
+.ws-readability {
+  margin-left: auto;
+  font-size: 10px;
+  color: #475569;
+  background: #eef2f7;
+  border: 1px solid #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 /* ---------- Worksheet header ---------- */
 .ws-header { border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 12px; }
+.ws-header.slim {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+}
 .ws-meta { display: flex; justify-content: space-between; font-size: 11px; color: #555; }
 .ws-meta .teacher { font-style: italic; font-weight: 600; color: #6b7280; }
 .ws-title-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
@@ -129,7 +179,15 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 /* ---------- Story + illustration ---------- */
 .story-row { display: grid; grid-template-columns: 1fr 200px; gap: 14px; margin-bottom: 10px; }
 .story-row.no-illustration { grid-template-columns: 1fr; }
+/* Faint container so the passage boundary is visible and content stays inside. */
+.story {
+  background: #fafaf8;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
 .story p { margin: 0 0 8px; }
+.story p:last-child { margin-bottom: 0; }
 .illustration {
   border: none;
   background: transparent;
@@ -164,12 +222,15 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 .write-box.trans-area { min-height: calc(var(--answer-h, 56px) * 0.62); margin-top: 4px; }
 .instruction { font-weight: 700; color: #1f2937; margin-bottom: 6px; }
 
-/* ---------- Translation practice (page 2) ---------- */
-.trans-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+/* ---------- Vocabulary panel (page 1, below the passage) ---------- */
+.vocab-panel { border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; }
+.vocab-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 2px; }
+
+/* ---------- Translation practice (page 2, single column) ---------- */
+.trans-single { display: block; }
 .trans-item { margin-bottom: 8px; }
 .trans-en { font-weight: 500; }
-.vocab-box { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; height: fit-content; }
-.vocab-item { padding: 4px 0; border-bottom: 1px dashed #e5e7eb; }
+.vocab-item { position: relative; padding: 4px 0; border-bottom: 1px dashed #e5e7eb; }
 .vocab-word { display: flex; gap: 6px; font-weight: 700; }
 .vocab-word .pos { color: #6b7280; font-weight: 400; }
 .vocab-meaning { color: #374151; }
@@ -181,6 +242,16 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 
 /* ---------- Footer ---------- */
 .ws-footer { margin-top: auto; padding-top: 10px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 11px; }
+
+/* ---------- Language mode (영어만 hides Korean) ---------- */
+.doc.lang-en .q-ko,
+.doc.lang-en .vocab-meaning,
+.doc.lang-en .trans-ko,
+.doc.lang-en .ko-only { display: none; }
+
+/* sidebar branding controls */
+.brand-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.brand-logo-preview { height: 28px; width: auto; max-width: 90px; border: 1px solid var(--border); border-radius: 4px; background: #fff; padding: 2px; }
 
 /* contentEditable focus affordance */
 [contenteditable]:focus { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
@@ -289,6 +360,12 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 
   .canvas.print-student [data-page='answers'] { display: none; }
   .canvas.print-answers [data-page='student'] { display: none; }
+
+  /* Preserve faint boxes, badges, and the correct-answer highlight in print. */
+  .page, .story, .ws-readability, .opt.correct, .badge {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 
   /* Block-level break protection: an item is never split across a page edge. */
   .print-block { break-inside: avoid; }

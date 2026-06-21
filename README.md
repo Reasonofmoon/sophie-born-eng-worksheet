@@ -43,7 +43,19 @@ npm run build      # tsc -b && vite build → dist/
 | 인쇄 모드 | 학습지만 / 답안지만 / 전체 — `@media print` 페이지 선택 | `src/index.css` |
 | 멀티 프로바이더 | Gemini / OpenAI / Anthropic BYOK (provider별 키 저장, 모델 선택) | `src/lib/llm.ts` |
 
+모델 목록은 2026-06-21 공식 문서 기준으로 검증·갱신했습니다 — Gemini `gemini-3.5-flash`(기본)·`3.1-flash-lite`·`2.5-*`·`3.1-pro-preview`, OpenAI `gpt-5.4-mini`(기본)·`gpt-5.4`·`gpt-5.5`·`gpt-5.5-pro`·`gpt-5.4-nano`, Anthropic `claude-sonnet-4-6`(기본)·`claude-haiku-4-5`·`claude-opus-4-8`·`claude-fable-5` 등. GPT-5.x 추론형 호환을 위해 OpenAI 호출은 `temperature`를 전송하지 않습니다.
+
 레벨 L3~L5는 삽화를 숨겨 페이지 오버플로를 방지(레거시 동작 유지).
+
+## 학원 브랜딩 · 난이도 매핑 · 언어 모드 (P4)
+
+- **학원 로고 / 학원명**: 사이드바에서 입력·업로드(localStorage 영속), 모든 페이지 상단 브랜딩 바 + HWP 내보내기에 반영 — [App.tsx](worksheet-gen/src/App.tsx), [WorksheetDoc.tsx](worksheet-gen/src/components/WorksheetDoc.tsx)
+- **난이도 CEFR · AR · Lexile 매핑**: 학년→`CEFR/AR(ATOS)/Lexile` 근사 매핑을 레벨 테이블에 추가, 헤더 배지로 표시 + 프롬프트에 readability 타깃 주입 — [levels.ts](worksheet-gen/src/lib/levels.ts)
+- **언어 표시 모드**: `영어+한국어(해석 포함)` ↔ `영어만(해석 숨김)` — 한국어 질문 번역·어휘 뜻·문장 해석·한글 본문을 토글, 화면·인쇄·HWP 모두 반영
+- **본문 컨테이너 박스**: 지문에 아주 흐린 배경(`#fafaf8`)+테두리로 경계를 표시, 내용이 박스 안에 정돈되도록
+- **페이지 넘침 처리**: 인쇄 시 한 페이지를 넘는 내용은 다음 시트로 자동 흐름(`break-before: page` + 블록 `break-inside: avoid`)되어 문항이 잘리지 않음. 배경/배지/정답 하이라이트는 `print-color-adjust: exact`로 인쇄 보존
+- **레이아웃 재배치 (P5)**: 핵심 단어 정리를 **1페이지 본문 바로 아래**(2단 그리드)로 이동, 어휘 스키마 **6~20개**로 확장(badge `8 / 6–20`), 구문 해석 연습은 **1단(full-width)**. HWP 내보내기도 본문→어휘→문제 순으로 일치 — [WorksheetDoc.tsx](worksheet-gen/src/components/WorksheetDoc.tsx), [schema.ts](worksheet-gen/src/lib/schema.ts)
+- **페이지 미리보기 (paged.js)**: 사이드바 `⊞ 페이지 미리보기` 토글 → 화면에서도 **실제 A4 분할**을 보여줌. 내용이 한 장을 넘치면 5·6…페이지로 이어지고 토글에 총 페이지 수 표시(`(11p)`). 편집은 편집 모드(기본)에서, 분할 확인은 미리보기에서. paged.js는 동적 import로 메인 번들과 분리 — [App.tsx](worksheet-gen/src/App.tsx)
 
 ## 인쇄 친화 / 블록 모델 (P1.1)
 

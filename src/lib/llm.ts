@@ -23,27 +23,53 @@ export interface ProviderInfo {
   models: readonly string[]
 }
 
+// Model lists verified against provider docs on 2026-06-21. First entry is the
+// default. Lists lead with balanced/affordable picks (good for worksheet
+// generation) and include premium tiers for teachers who want them.
 export const PROVIDERS: Record<Provider, ProviderInfo> = {
   gemini: {
     id: 'gemini',
     label: 'Google Gemini',
     keyHint: 'AIza…',
     consoleUrl: 'https://aistudio.google.com/apikey',
-    models: ['gemini-2.5-flash', 'gemini-2.5-flash-lite'],
+    models: [
+      'gemini-3.5-flash', // 최신 GA 플래시 (권장)
+      'gemini-2.5-flash', // 검증된 저비용
+      'gemini-2.5-flash-lite', // 최저가
+      'gemini-3.1-flash-lite', // 신형 경량
+      'gemini-3-flash-preview', // 프리뷰
+      'gemini-2.5-pro', // 고성능
+      'gemini-3.1-pro-preview', // 고성능 프리뷰
+    ],
   },
   openai: {
     id: 'openai',
     label: 'OpenAI',
     keyHint: 'sk-…',
     consoleUrl: 'https://platform.openai.com/api-keys',
-    models: ['gpt-4o-mini', 'gpt-4o'],
+    models: [
+      'gpt-5.4-mini', // 강력+저비용 (권장)
+      'gpt-5.4', // 합리적 프런티어
+      'gpt-5.4-nano', // 최저가/고속
+      'gpt-5.5', // 최신 프런티어
+      'gpt-5.5-pro', // 최고 정확도(고가)
+      'gpt-4.1-mini', // 경량 폴백
+      'gpt-4o-mini', // 레거시 폴백
+    ],
   },
   anthropic: {
     id: 'anthropic',
     label: 'Anthropic (Claude)',
     keyHint: 'sk-ant-…',
     consoleUrl: 'https://console.anthropic.com/settings/keys',
-    models: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
+    models: [
+      'claude-sonnet-4-6', // 균형 (권장)
+      'claude-haiku-4-5', // 저비용/고속
+      'claude-opus-4-8', // 최고 성능
+      'claude-opus-4-7', // 직전 세대 Opus
+      'claude-opus-4-6', // 구형 Opus
+      'claude-fable-5', // 최상위(고가, 30일 보존 필요)
+    ],
   },
 }
 
@@ -98,7 +124,7 @@ async function callOpenAI({ apiKey, model, prompt, signal }: CallArgs): Promise<
       model,
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
-      temperature: 0.8,
+      // No temperature: GPT-5.x reasoning models reject non-default values.
     }),
     signal,
   })

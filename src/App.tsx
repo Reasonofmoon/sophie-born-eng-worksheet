@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { PrivacyNudge } from './components/PrivacyNudge'
-import { WorksheetDoc, type DocMeta } from './components/WorksheetDoc'
+import { WorksheetDoc, type DocMeta, type LangMode } from './components/WorksheetDoc'
 import { applyStructure, type StructureOp } from './lib/blocks'
-import { buildHwpHtml, copyHtmlToClipboard } from './lib/hwp'
+import { buildHwpHtml, copyHtmlToClipboard, downloadHtmlFile } from './lib/hwp'
 import {
   generateFromPassage,
   generateWorksheet,
@@ -11,7 +11,15 @@ import {
   PROVIDERS,
   type Provider,
 } from './lib/llm'
-import { LEVELS, LEVEL_VALUES, STYLE_OPTIONS, type Genre, type LevelValue } from './lib/levels'
+import {
+  LEVELS,
+  LEVEL_VALUES,
+  levelByCode,
+  readabilityLabel,
+  STYLE_OPTIONS,
+  type Genre,
+  type LevelValue,
+} from './lib/levels'
 import { PRESETS, type Preset } from './lib/presets'
 import type { Worksheet } from './lib/schema'
 import {
@@ -29,14 +37,33 @@ const BLANK = '______________________'
 const NO_ILLUSTRATION = new Set(['L3', 'L4', 'L5'])
 const keyStorageKey = (p: Provider) => `apikey_${p}`
 
-function defaultMeta(genreLabel: string, levelCode: string): DocMeta {
-  return { genreLabel, levelCode, footer: 'Born English', name: BLANK, date: BLANK }
+interface Branding {
+  academyName: string
+  logoDataUrl: string | null
+}
+
+function readabilityForCode(levelCode: string): string {
+  const cfg = levelByCode(levelCode)
+  return cfg ? readabilityLabel(cfg) : ''
+}
+
+function defaultMeta(genreLabel: string, levelCode: string, branding: Branding): DocMeta {
+  return {
+    genreLabel,
+    levelCode,
+    footer: branding.academyName || 'Born English',
+    name: BLANK,
+    date: BLANK,
+    academyName: branding.academyName,
+    logoDataUrl: branding.logoDataUrl,
+    readability: readabilityForCode(levelCode),
+  }
 }
 
 export function App() {
   const [provider, setProvider] = useState<Provider>('gemini')
   const [apiKey, setApiKey] = useState('')
-  const [model, setModel] = useState<string>(PROVIDERS.gemini.models[0] ?? 'gemini-2.5-flash')
+  const [model, setModel] = useState<string>(PROVIDERS.gemini.models[0] ?? 'gemini-3.5-flash')
 
   const [genMode, setGenMode] = useState<GenMode>('generate')
   const [topic, setTopic] = useState('')
@@ -47,7 +74,9 @@ export function App() {
   const [vocab, setVocab] = useState('')
 
   const [ws, setWs] = useState<Worksheet | null>(null)
-  const [meta, setMeta] = useState<DocMeta>(defaultMeta('문학', 'L3'))
+  const [branding, setBranding] = useState<Branding>({ academyName: '', logoDataUrl: null })
+  const [langMode, setLangMode] = useState<LangMode>('both')
+  const [meta, setMeta] = useState<DocMeta>(defaultMeta('문학', 'L3', { academyName: '', logoDataUrl: null }))
   const [image, setImage] = useState<string | null>(null)
   const [printMode, setPrintMode] = useState<PrintMode>('all')
   const [activePreset, setActivePreset] = useState<string | null>(null)
@@ -59,9 +88,45 @@ export function App() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
+  // Paged preview (paged.js) — true A4 pagination on screen so overflow flows
+  // onto page 5, 6, … instead of one box growing past the sheet.
+  const [previewPaged, setPreviewPaged] = useState(false)
+  const [paging, setPaging] = useState(false)
+  const [pageCount, setPageCount] = useState(0)
+  const sourceRef = useRef<HTMLDivElement>(null)
+  const pagedRef = useRef<HTMLDivElement>(null)
+
   const providerInfo = PROVIDERS[provider]
   const styles = STYLE_OPTIONS[genre]
   const noIllustration = NO_ILLUSTRATION.has(meta.levelCode)
+
+  // Re-paginate whenever the preview is on and the worksheet/layout changes.
+  useEffect(() => {
+    if (!previewPaged || !ws) return
+    const source = sourceRef.current
+    const target = pagedRef.current
+    if (!source || !target) return
+    let cancelled = false
+    setPaging(true)
+    const html = source.innerHTML.replace(/contenteditable="true"/g, '')
+    target.innerHTML = ''
+    void (async () => {
+      try {
+        const { Previewer } = await import('pagedjs')
+        if (cancelled) return
+        const result = await new Previewer().preview(html, [], target)
+        if (!cancelled) setPageCount(result?.total ?? 0)
+      } catch {
+        if (!cancelled) setError('페이지 미리보기 생성에 실패했습니다.')
+      } finally {
+        if (!cancelled) setPaging(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewPaged, ws, meta, settings, langMode, image, noIllustration])
 
   useEffect(() => {
     setApiKey(localStorage.getItem(keyStorageKey(provider)) ?? '')
@@ -79,6 +144,16 @@ export function App() {
     const t = setTimeout(() => setNotice(null), 4000)
     return () => clearTimeout(t)
   }, [notice])
+
+  // Branding (academy name + logo) persists across sessions and worksheets.
+  useEffect(() => {
+    const loaded: Branding = {
+      academyName: localStorage.getItem('academy_name') ?? '',
+      logoDataUrl: localStorage.getItem('academy_logo'),
+    }
+    setBranding(loaded)
+    setMeta((prev) => ({ ...prev, academyName: loaded.academyName, logoDataUrl: loaded.logoDataUrl, footer: prev.footer || loaded.academyName || 'Born English' }))
+  }, [])
 
   const canGenerate = useMemo(() => {
     if (apiKey.trim().length === 0 || loading) return false
@@ -107,6 +182,35 @@ export function App() {
     localStorage.removeItem(keyStorageKey(provider))
   }
 
+  function setAcademyName(name: string) {
+    setBranding((b) => ({ ...b, academyName: name }))
+    localStorage.setItem('academy_name', name)
+    setMeta((prev) => ({ ...prev, academyName: name }))
+  }
+
+  function setLogo(dataUrl: string | null) {
+    setBranding((b) => ({ ...b, logoDataUrl: dataUrl }))
+    if (dataUrl) localStorage.setItem('academy_logo', dataUrl)
+    else localStorage.removeItem('academy_logo')
+    setMeta((prev) => ({ ...prev, logoDataUrl: dataUrl }))
+  }
+
+  function uploadLogo() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result === 'string') setLogo(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+    input.click()
+  }
+
   function applyTemplate(id: string) {
     setTemplateId(id)
     setSettings(settingsFrom(templateById(id)))
@@ -114,7 +218,7 @@ export function App() {
 
   function loadPreset(p: Preset) {
     setWs(structuredClone(p.worksheet))
-    setMeta(defaultMeta(p.genre === 'nonfiction' ? '비문학' : '문학', p.levelCode))
+    setMeta(defaultMeta(p.genre === 'nonfiction' ? '비문학' : '문학', p.levelCode, branding))
     setGenre(p.genre)
     setImage(null)
     setActivePreset(p.key)
@@ -139,7 +243,7 @@ export function App() {
               requiredVocabulary: vocab,
             })
       setWs(result)
-      setMeta(defaultMeta(genre === 'nonfiction' ? '비문학' : '문학', LEVELS[level].code))
+      setMeta(defaultMeta(genre === 'nonfiction' ? '비문학' : '문학', LEVELS[level].code, branding))
       setImage(null)
       setActivePreset(null)
     } catch (err) {
@@ -171,23 +275,79 @@ export function App() {
     })
   }
 
+  function buildHwp() {
+    if (!ws) return null
+    return buildHwpHtml(
+      ws,
+      {
+        genreLabel: meta.genreLabel,
+        levelCode: meta.levelCode,
+        footer: meta.footer,
+        academyName: meta.academyName,
+        logoDataUrl: meta.logoDataUrl,
+        readability: meta.readability,
+      },
+      settings,
+      printMode,
+      langMode,
+    )
+  }
+
   async function copyHwp() {
-    if (!ws) return
-    const html = buildHwpHtml(ws, { genreLabel: meta.genreLabel, levelCode: meta.levelCode, footer: meta.footer }, settings, printMode)
+    const html = buildHwp()
+    if (!html) return
     try {
       const ok = await copyHtmlToClipboard(html)
-      if (ok) setNotice('HWP용 HTML을 복사했어요. HWP에서 Ctrl+V로 붙여넣으세요.')
-      else setError('이 브라우저에서 클립보드 복사를 지원하지 않습니다.')
+      if (ok) setNotice('복사 완료. 한글에서 Ctrl+V. 코드로 보이면 골라 붙이기(Ctrl+Alt+V)→HTML, 또는 아래 “HWP 파일 저장” 사용.')
+      else setError('이 브라우저에서 클립보드 복사를 지원하지 않습니다. “HWP 파일 저장”을 사용하세요.')
     } catch {
-      setError('클립보드 접근 권한이 필요합니다.')
+      setError('클립보드 접근 권한이 필요합니다. “HWP 파일 저장”을 사용하세요.')
     }
   }
+
+  function downloadHwp() {
+    const html = buildHwp()
+    if (!html || !ws) return
+    const name = `${ws.title.replace(/[^\w가-힣 -]/g, '').trim() || 'worksheet'}-${meta.levelCode}`
+    downloadHtmlFile(html, name)
+    setNotice('HTML 파일을 저장했어요. 한글에서 [파일 → 불러오기]로 그 파일을 열면 서식 그대로 들어갑니다.')
+  }
+
+  const docEl = ws ? (
+    <WorksheetDoc
+      worksheet={ws}
+      meta={meta}
+      image={image}
+      noIllustration={noIllustration}
+      langMode={langMode}
+      onWorksheet={updateWorksheet}
+      onMeta={updateMeta}
+      onImage={setImage}
+      onStructure={updateStructure}
+      styleVars={styleVars}
+    />
+  ) : null
 
   return (
     <div className="layout">
       <aside className="sidebar no-print">
         <h1>WorksheetCraft</h1>
         <p className="tagline">초·중등 영어 독해 학습지 생성기 · BYOK</p>
+
+        <div className="section">학원 브랜딩</div>
+        <label>
+          학원명
+          <input value={branding.academyName} onChange={(e) => setAcademyName(e.target.value)} placeholder="예: 본잉글리시 학원" />
+        </label>
+        <div className="brand-row">
+          <button type="button" className="secondary" onClick={uploadLogo}>로고 업로드</button>
+          {branding.logoDataUrl && (
+            <>
+              <img className="brand-logo-preview" src={branding.logoDataUrl} alt="로고 미리보기" />
+              <button type="button" className="link-btn danger" onClick={() => setLogo(null)}>제거</button>
+            </>
+          )}
+        </div>
 
         <div className="section">샘플 학습지 (오프라인)</div>
         <div className="presets">
@@ -293,6 +453,13 @@ export function App() {
         <div className="section">디자인 / 템플릿</div>
         <p className="field-nudge">🎨 레이아웃은 토큰을 쓰지 않아요 — 자유롭게 바꿔보세요.</p>
         <label>
+          언어 표시
+          <select value={langMode} onChange={(e) => setLangMode(e.target.value as LangMode)}>
+            <option value="both">영어 + 한국어 (해석 포함)</option>
+            <option value="en">영어만 (해석 숨김)</option>
+          </select>
+        </label>
+        <label>
           템플릿
           <select value={templateId} onChange={(e) => applyTemplate(e.target.value)}>
             {TEMPLATES.map((t) => (
@@ -330,30 +497,35 @@ export function App() {
             <option value="answers">답안지만 (2페이지)</option>
           </select>
         </label>
+        <button className="secondary" disabled={!ws} onClick={() => setPreviewPaged((v) => !v)}>
+          {previewPaged ? '✎ 편집 모드로' : '⊞ 페이지 미리보기'}{previewPaged && pageCount ? ` (${pageCount}p)` : ''}
+        </button>
+        <p className="field-nudge">페이지 미리보기는 실제 A4 분할을 보여줘요 — 내용이 넘치면 다음 장으로 이어집니다.</p>
         <button className="secondary" disabled={!ws} onClick={() => window.print()}>인쇄 / PDF 저장</button>
         <button className="secondary" disabled={!ws} onClick={copyHwp}>HWP용 HTML 복사</button>
+        <button className="secondary" disabled={!ws} onClick={downloadHwp}>HWP 파일 저장 (.html)</button>
+        <p className="field-nudge">붙여넣기가 코드로 나오면 한글에서 <b>골라 붙이기(Ctrl+Alt+V) → HTML</b>, 또는 저장한 .html을 <b>[파일 → 불러오기]</b>로 여세요.</p>
 
         {error && <p className="error">⚠ {error}</p>}
         {notice && <p className="notice">✓ {notice}</p>}
       </aside>
 
       <main className={`canvas print-${printMode}`}>
-        {ws ? (
-          <WorksheetDoc
-            worksheet={ws}
-            meta={meta}
-            image={image}
-            noIllustration={noIllustration}
-            onWorksheet={updateWorksheet}
-            onMeta={updateMeta}
-            onImage={setImage}
-            onStructure={updateStructure}
-            styleVars={styleVars}
-          />
-        ) : (
+        {!ws && (
           <div className="empty no-print">
             <p>왼쪽에서 샘플을 불러오거나, 키를 입력해 학습지를 생성하세요.</p>
           </div>
+        )}
+        {ws && !previewPaged && docEl}
+        {ws && previewPaged && (
+          <>
+            {/* Hidden source paged.js reads from, then renders A4 sheets into paged-host. */}
+            <div className="paged-source no-print" ref={sourceRef} aria-hidden="true">
+              {docEl}
+            </div>
+            {paging && <div className="empty no-print">페이지 분할 중…</div>}
+            <div className="paged-host" ref={pagedRef} />
+          </>
         )}
       </main>
 

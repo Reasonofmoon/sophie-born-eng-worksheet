@@ -3,7 +3,7 @@ import type { KeySentence, VocabularyItem, Worksheet } from './schema'
 // Schema-derived bounds, surfaced so the UI can *nudge* (soft-disable + hint)
 // instead of letting an edit fail validation.
 export const VOCAB_MIN = 6
-export const VOCAB_MAX = 8
+export const VOCAB_MAX = 20
 export const SENTENCE_MIN = 1
 
 const NEW_VOCAB: VocabularyItem = { word: 'word', pos: 'n.', meaning: '뜻' }

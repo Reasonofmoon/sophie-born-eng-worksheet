@@ -63,13 +63,19 @@ describe('worksheetSchema', () => {
     expect(worksheetSchema.safeParse(w).success).toBe(false)
   })
 
-  it('rejects vocabulary below 6 or above 8', () => {
+  it('rejects vocabulary below 6 or above 20', () => {
     const w = validWorksheet()
     w.vocabulary = w.vocabulary.slice(0, 5)
     expect(worksheetSchema.safeParse(w).success).toBe(false)
     const w2 = validWorksheet()
-    w2.vocabulary = Array.from({ length: 9 }, () => ({ word: 'x', pos: 'n.', meaning: '뜻' }))
+    w2.vocabulary = Array.from({ length: 21 }, () => ({ word: 'x', pos: 'n.', meaning: '뜻' }))
     expect(worksheetSchema.safeParse(w2).success).toBe(false)
+  })
+
+  it('accepts up to 20 vocabulary items', () => {
+    const w = validWorksheet()
+    w.vocabulary = Array.from({ length: 20 }, () => ({ word: 'x', pos: 'n.', meaning: '뜻' }))
+    expect(worksheetSchema.safeParse(w).success).toBe(true)
   })
 
   it('rejects when story_ko paragraph count differs from story', () => {
